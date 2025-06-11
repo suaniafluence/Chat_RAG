@@ -268,6 +268,39 @@
             margin-top: 20px;
         }
 
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .login-box {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 300px;
+        }
+        .login-box input {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        .login-box button {
+            padding: 10px;
+            background: var(--gradient-bg);
+            color: var(--text-light);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
         .keyboard-grid {
             display: grid;
             grid-template-columns: repeat(10, 1fr);
@@ -372,6 +405,15 @@
     </style>
 </head>
 <body>
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h3>Connexion</h3>
+            <input type="text" id="loginUser" placeholder="Utilisateur">
+            <input type="password" id="loginPass" placeholder="Mot de passe">
+            <button id="loginBtn">Se connecter</button>
+            <div id="loginError" style="color:red;"></div>
+        </div>
+    </div>
     <div class="container">
         <div class="header">
             <h1>🤖 RAG Assistant</h1>
@@ -473,8 +515,15 @@
 
     <script>
         const API_BASE = 'http://localhost:8000';
-        
+
         // Éléments DOM
+        const loginOverlay = document.getElementById('loginOverlay');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginUser = document.getElementById('loginUser');
+        const loginPass = document.getElementById('loginPass');
+        const loginError = document.getElementById('loginError');
+        let authHeader = '';
+
         const messagesArea = document.getElementById('messagesArea');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
@@ -489,12 +538,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Afficher l'heure de bienvenue
             welcomeTime.textContent = new Date().toLocaleTimeString();
-            
+
             // Charger la liste des documents
             loadDocuments();
-            
+
             // Détecter si c'est une tablette
             detectTablet();
+
+            loginBtn.addEventListener('click', handleLogin);
         });
 
         function detectTablet() {
@@ -537,6 +588,23 @@
                     messageInput.focus();
                 });
             });
+        }
+
+        async function handleLogin() {
+            const encoded = btoa(`${loginUser.value}:${loginPass.value}`);
+            try {
+                const resp = await fetch(`${API_BASE}/health`, {
+                    headers: { 'Authorization': 'Basic ' + encoded }
+                });
+                if (resp.ok) {
+                    authHeader = 'Basic ' + encoded;
+                    loginOverlay.style.display = 'none';
+                } else {
+                    loginError.textContent = 'Identifiants invalides';
+                }
+            } catch (e) {
+                loginError.textContent = 'Erreur de connexion';
+            }
         }
 
         // Gestion des événements
@@ -590,9 +658,10 @@
 
             try {
                 showMessage('system', `📤 Upload de ${file.name}...`);
-                
+
                 const response = await fetch(`${API_BASE}/upload`, {
                     method: 'POST',
+                    headers: { 'Authorization': authHeader },
                     body: formData
                 });
 

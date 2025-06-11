@@ -1,9 +1,10 @@
 import os
 import asyncio
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
@@ -14,6 +15,7 @@ from docx import Document
 import io
 import hashlib
 import openai
+import secrets
 from datetime import datetime
 import json
 import logging
@@ -42,6 +44,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Authentification basique pour la route d'upload
+security = HTTPBasic()
+USERNAME = os.getenv("RAG_USERNAME", "admin")
+PASSWORD = os.getenv("RAG_PASSWORD", "password")
+
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_user = secrets.compare_digest(credentials.username, USERNAME)
+    correct_pass = secrets.compare_digest(credentials.password, PASSWORD)
+    if not (correct_user and correct_pass):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+# Servir la page principale
+@app.get("/", response_class=HTMLResponse)
+async def root_page():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
 
 # Initialisation des modèles
 @app.on_event("startup")
@@ -150,7 +174,10 @@ async def search_documents(query: str, k: int = 5) -> List[str]:
 
 # Endpoints
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(
+    file: UploadFile = File(...),
+    username: str = Depends(verify_credentials)
+):
     """Upload et traitement des fichiers"""
     try:
         # Vérifier le type de fichier
@@ -325,7 +352,7 @@ async def health_check():
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",
+        "rag_backend:app",
         host="0.0.0.0",
         port=8000,
         reload=True

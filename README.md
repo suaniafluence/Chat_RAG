@@ -81,6 +81,8 @@ Le serveur démarre sur `http://localhost:8000`
 ### 2. Accéder à l'interface
 Ouvrez votre navigateur sur `http://localhost:8000` ou servez le fichier `index.html`
 
+Lors de la première visite, saisissez vos identifiants pour pouvoir envoyer des fichiers.
+
 ## 📱 Utilisation
 
 ### Upload de documents
@@ -195,7 +197,11 @@ rm -rf ~/.cache/huggingface/
 Les logs sont affichés dans la console du serveur pour le débogage.
 
 ## 🛡️ Sécurité
-- Ajoutez l'authentification pour la production
+L'upload est maintenant protégé par une authentification HTTP Basic.
+Les identifiants par défaut sont `admin` / `password`. Vous pouvez les
+changer en définissant les variables d'environnement `RAG_USERNAME` et
+`RAG_PASSWORD` avant de lancer l'application.
+
 - Limitez les types de fichiers acceptés
 - Validez la taille des fichiers
 - Utilisez HTTPS en production
