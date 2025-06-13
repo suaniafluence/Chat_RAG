@@ -225,3 +225,6 @@ export WORKERS=4
 ```
 
 Votre système RAG est maintenant prêt ! 🎉
+
+## 📝 Version simplifiée
+Pour tester rapidement le concept de RAG, un script `simple_rag.py` est fourni.
